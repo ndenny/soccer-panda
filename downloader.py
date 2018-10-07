@@ -312,6 +312,12 @@ def pprintTimeline(timeline):
             print(
                 f"{event['MatchMinute']}: \N{GOAL NET}{BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
             )
+        elif event["Type"] == EVENT_TYPES_MAP["OwnGoal"]:
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event["IdTeam"])
+            print(
+                f"{event['MatchMinute']}: \N{Face Palm} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+            )
         elif event["Type"] == EVENT_TYPES_MAP["YellowCard"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])

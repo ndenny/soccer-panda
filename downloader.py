@@ -18,6 +18,9 @@ logging.basicConfig(
 log = logging.getLogger(__name__)  # pylint: disable=C0103
 
 BALL = "\N{SOCCER BALL}"
+SUB_IN = "\N{Up-Pointing Small Red Triangle}"
+SUB_OUT = "\N{Down-Pointing Small Red Triangle}"
+
 COUNT = 1000
 LANG = "en-US"
 
@@ -261,10 +264,12 @@ def getPlayer(player_id):
     filename = f"players/{player_id}"
     return fetchList(url, filename)
 
+
 def getTeam(team_id):
     url = f"{BASE_URL}{GET_TEAM}".format(language=LANG, idTeam=team_id)
     filename = f"teams/{team_id}"
     return fetchList(url, filename)
+
 
 @soccer
 def pprintCountries(info):
@@ -297,47 +302,49 @@ def pprintTimeline(timeline):
     for event in timeline["Event"]:
         if event["Type"] == EVENT_TYPES_MAP["Goal"]:
             player = getPlayer(event["IdPlayer"])
-            team = getTeam(event['IdTeam'])
+            team = getTeam(event["IdTeam"])
             print(
                 f"{event['MatchMinute']}: {BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
             )
         elif event["Type"] == EVENT_TYPES_MAP["GoalFromPenalty"]:
             player = getPlayer(event["IdPlayer"])
-            team = getTeam(event['IdTeam'])
+            team = getTeam(event["IdTeam"])
             print(
                 f"{event['MatchMinute']}: \N{GOAL NET}{BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
             )
         elif event["Type"] == EVENT_TYPES_MAP["YellowCard"]:
             player = getPlayer(event["IdPlayer"])
-            team = getTeam(event['IdTeam'])
+            team = getTeam(event["IdTeam"])
             print(
                 f"{event['MatchMinute']}: \N{LEDGER} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
             )
         elif event["Type"] == EVENT_TYPES_MAP["RedCard"]:
             player = getPlayer(event["IdPlayer"])
-            team = getTeam(event['IdTeam'])
+            team = getTeam(event["IdTeam"])
             print(
                 f"{event['MatchMinute']}: \N{LARGE RED CIRCLE} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
             )
         elif event["Type"] == EVENT_TYPES_MAP["Red2Yellow"]:
             player = getPlayer(event["IdPlayer"])
-            team = getTeam(event['IdTeam'])
+            team = getTeam(event["IdTeam"])
             print(
                 f"{event['MatchMinute']}: \N{LEDGER}\N{LEDGER}\N{LARGE RED CIRCLE} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
             )
         elif event["Type"] == EVENT_TYPES_MAP["Substitution"]:
             player = getPlayer(event["IdPlayer"])
-            team = getTeam(event['IdTeam'])
+            team = getTeam(event["IdTeam"])
             subPlayer = (
                 getPlayer(event["IdSubPlayer"])
                 if event["IdSubPlayer"]
                 else {"Name": [{"Description": "???"}]}
             )
             print(
-                f"{event['MatchMinute']}: Sub - {player['Name'][0]['Description']} <=> {subPlayer['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+                f"{event['MatchMinute']}: Sub - {SUB_IN} {player['Name'][0]['Description']} \N{Left Right Arrow} {SUB_OUT} {subPlayer['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
             )
         elif event["Type"] != EVENT_TYPES_MAP["Unknown"]:
-            print(f"{event['MatchMinute']} - \N{STOPWATCH} {EVENT_TYPES[event['Type']]}")
+            print(
+                f"{event['MatchMinute']} - \N{STOPWATCH} {EVENT_TYPES[event['Type']]}"
+            )
 
 
 @soccer

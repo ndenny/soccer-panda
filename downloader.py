@@ -17,7 +17,7 @@ logging.basicConfig(
 
 log = logging.getLogger(__name__)  # pylint: disable=C0103
 
-BALL = '\N{SOCCER BALL}'
+BALL = "\N{SOCCER BALL}"
 COUNT = 1000
 LANG = "en-US"
 
@@ -46,6 +46,9 @@ GET_MATCHES = "api/v1/calendar/matches?idSeason={idSeason}&idCompetition={idComp
 # GET_TIMELINE = "api/v1/timelines/{idCompetition}/{idSeason}/{idStage}/{idMatch}/{idGroup}?language={language}&scope={scope}"
 GET_TIMELINE = "api/v1/timelines/{idCompetition}/{idSeason}/{idStage}/{idMatch}/?language={language}"
 
+GET_PLAYER = "api/v1/players/{idPlayer}?language={language}"
+
+GET_TEAM = "api/v1/teams/{idTeam}?language={language}"
 
 EVENT_PERIODS = {
     0: "Unknown",  # Unknown event period.
@@ -64,6 +67,7 @@ EVENT_PERIODS = {
     13: "Abandoned",  # Abandoned event period.
     14: "Third_Half",  # Third Half event period (beach soccer).
 }
+EVENT_PERIODS_MAP = {v: k for k, v in EVENT_PERIODS.items()}
 
 EVENT_TYPES = {
     0: "Goal",  # Goal type.
@@ -141,6 +145,7 @@ EVENT_TYPES = {
     69: "EndTimeWithPSO",  # EndTimeWithPSO
     70: "StartMatch",  # StartMatch
 }
+EVENT_TYPES_MAP = {v: k for k, v in EVENT_TYPES.items()}
 
 
 def soccer(func):
@@ -251,6 +256,16 @@ def getTimeline(country_id, competition_id, season_id, stage_id, match_id):
     return fetchList(url, filename)
 
 
+def getPlayer(player_id):
+    url = f"{BASE_URL}{GET_PLAYER}".format(language=LANG, idPlayer=player_id)
+    filename = f"players/{player_id}"
+    return fetchList(url, filename)
+
+def getTeam(team_id):
+    url = f"{BASE_URL}{GET_TEAM}".format(language=LANG, idTeam=team_id)
+    filename = f"teams/{team_id}"
+    return fetchList(url, filename)
+
 @soccer
 def pprintCountries(info):
     for comp in info:
@@ -260,9 +275,7 @@ def pprintCountries(info):
 @soccer
 def pprintCompetitions(info):
     for comp in info:
-        print(
-            f"{BALL}\t{comp['IdCompetition']}\t{comp['Name'][0]['Description']}"
-        )
+        print(f"{BALL}\t{comp['IdCompetition']}\t{comp['Name'][0]['Description']}")
 
 
 @soccer
@@ -277,6 +290,54 @@ def pprintMatches(matches):
         print(
             f"{BALL}\t{match['IdMatch']}\t{match['Date']}\t{match['PlaceHolderA']} {match['HomeTeamScore']} - {match['AwayTeamScore']} {match['PlaceHolderB']}"
         )
+
+
+@soccer
+def pprintTimeline(timeline):
+    for event in timeline["Event"]:
+        if event["Type"] == EVENT_TYPES_MAP["Goal"]:
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event['IdTeam'])
+            print(
+                f"{event['MatchMinute']}: {BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+            )
+        elif event["Type"] == EVENT_TYPES_MAP["GoalFromPenalty"]:
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event['IdTeam'])
+            print(
+                f"{event['MatchMinute']}: \N{GOAL NET}{BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+            )
+        elif event["Type"] == EVENT_TYPES_MAP["YellowCard"]:
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event['IdTeam'])
+            print(
+                f"{event['MatchMinute']}: \N{LEDGER} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+            )
+        elif event["Type"] == EVENT_TYPES_MAP["RedCard"]:
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event['IdTeam'])
+            print(
+                f"{event['MatchMinute']}: \N{LARGE RED CIRCLE} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+            )
+        elif event["Type"] == EVENT_TYPES_MAP["Red2Yellow"]:
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event['IdTeam'])
+            print(
+                f"{event['MatchMinute']}: \N{LEDGER}\N{LEDGER}\N{LARGE RED CIRCLE} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+            )
+        elif event["Type"] == EVENT_TYPES_MAP["Substitution"]:
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event['IdTeam'])
+            subPlayer = (
+                getPlayer(event["IdSubPlayer"])
+                if event["IdSubPlayer"]
+                else {"Name": [{"Description": "???"}]}
+            )
+            print(
+                f"{event['MatchMinute']}: Sub - {player['Name'][0]['Description']} <=> {subPlayer['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+            )
+        elif event["Type"] != EVENT_TYPES_MAP["Unknown"]:
+            print(f"{event['MatchMinute']} - \N{STOPWATCH} {EVENT_TYPES[event['Type']]}")
 
 
 @soccer
@@ -322,15 +383,23 @@ def main():
                 # pprintMatches(matches)
 
                 for match in matches:
-                    if match['HomeTeamScore'] is not None and (match["Home"]["IdTeam"] in [ABERDEEN_ID, SOUNDERS_ID] or match[
-                        "Away"
-                    ]["IdTeam"] in [ABERDEEN_ID, SOUNDERS_ID]):
-                        print(
-                            f"{match['IdMatch']}\t{match['Date']}\t{match['PlaceHolderA'] or match['Home']['TeamName'][0]['Description']} {BALL * match['HomeTeamScore'] or 0} - {BALL * match['AwayTeamScore'] or 0} {match['PlaceHolderB'] or match['Away']['TeamName'][0]['Description']}"
-                        )
-                        match_id = match["IdMatch"]
-                        stage_id = match["IdStage"]
-                        getTimeline(country_id, comp_id, season_id, stage_id, match_id)
+                    if match["HomeTeamScore"] is None:
+                        continue
+                    if match["Home"]["IdTeam"] not in [
+                        ABERDEEN_ID,
+                        SOUNDERS_ID,
+                    ] and match["Away"]["IdTeam"] not in [ABERDEEN_ID, SOUNDERS_ID]:
+                        continue
+
+                    print(
+                        f"{match['IdMatch']}\t{match['Date']}\t{match['PlaceHolderA'] or match['Home']['TeamName'][0]['Description']} {BALL * match['HomeTeamScore'] or 0} - {BALL * match['AwayTeamScore'] or 0} {match['PlaceHolderB'] or match['Away']['TeamName'][0]['Description']}"
+                    )
+                    match_id = match["IdMatch"]
+                    stage_id = match["IdStage"]
+                    timeline = getTimeline(
+                        country_id, comp_id, season_id, stage_id, match_id
+                    )
+                    pprintTimeline(timeline)
 
     # info = listCompetitions("SCO")
     # pprintCompetitions(info)

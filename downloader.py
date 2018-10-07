@@ -298,26 +298,57 @@ def pprintMatches(matches):
 
 
 @soccer
-def pprintTimeline(timeline):
+def pprintTimeline(timeline, home_id, away_id):
+    home = 0
+    away = 0
     for event in timeline["Event"]:
-        if event["Type"] == EVENT_TYPES_MAP["Goal"]:
+        if event["Type"] == EVENT_TYPES_MAP["Shot"]:
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event["IdTeam"])
+            print(
+                f"{event['MatchMinute']}: SHOT - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+            )
+        elif event["Type"] == EVENT_TYPES_MAP["Goal"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])
             print(
                 f"{event['MatchMinute']}: {BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
             )
+            if event["IdTeam"] == home_id:
+                home += 1
+            elif event["IdTeam"] == away_id:
+                away += 1
+        elif event["Type"] == EVENT_TYPES_MAP["GoalFromFreeKick"]:
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event["IdTeam"])
+            print(
+                f"{event['MatchMinute']}: {BALL} (Free kick) - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+            )
+            if event["IdTeam"] == home_id:
+                home += 1
+            elif event["IdTeam"] == away_id:
+                away += 1
         elif event["Type"] == EVENT_TYPES_MAP["GoalFromPenalty"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])
             print(
                 f"{event['MatchMinute']}: \N{GOAL NET}{BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
             )
+            if event["IdTeam"] == home_id:
+                home += 1
+            elif event["IdTeam"] == away_id:
+                away += 1
         elif event["Type"] == EVENT_TYPES_MAP["OwnGoal"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])
             print(
-                f"{event['MatchMinute']}: \N{Face Palm} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+                f"{event['MatchMinute']}: \N{Face Palm}{BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
             )
+            # NB: Swapped home and away
+            if event["IdTeam"] == home_id:
+                away += 1
+            elif event["IdTeam"] == away_id:
+                home += 1
         elif event["Type"] == EVENT_TYPES_MAP["YellowCard"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])
@@ -347,11 +378,20 @@ def pprintTimeline(timeline):
             print(
                 f"{event['MatchMinute']}: Sub - {SUB_IN} {player['Name'][0]['Description']} \N{Left Right Arrow} {SUB_OUT} {subPlayer['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
             )
+        elif event["Type"] == EVENT_TYPES_MAP["SaveFromPenalty"]:
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event["IdTeam"])
+            print(
+                f"{event['MatchMinute']}: \N{GOAL NET}\N{No Entry Sign} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+            )
         elif event["Type"] != EVENT_TYPES_MAP["Unknown"]:
+            if event["Type"] not in [EVENT_TYPES_MAP['EndMatch'], EVENT_TYPES_MAP['StartTime'], EVENT_TYPES_MAP['EndTime']]:
+                raise Exception(EVENT_TYPES[event["Type"]])
             print(
                 f"{event['MatchMinute']} - \N{STOPWATCH} {EVENT_TYPES[event['Type']]}"
             )
 
+    return home, away
 
 @soccer
 def pprintList(info, id_tag):
@@ -412,7 +452,9 @@ def main():
                     timeline = getTimeline(
                         country_id, comp_id, season_id, stage_id, match_id
                     )
-                    pprintTimeline(timeline)
+                    home, away = pprintTimeline(timeline, match['Home']['IdTeam'], match['Away']['IdTeam'])
+                    assert home == match['HomeTeamScore'], f"{home} == {match['HomeTeamScore']}"
+                    assert away == match['AwayTeamScore'], f"{away} == {match['AwayTeamScore']}"
 
     # info = listCompetitions("SCO")
     # pprintCompetitions(info)

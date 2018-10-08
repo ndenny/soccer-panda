@@ -302,71 +302,65 @@ def pprintTimeline(timeline, home_id, away_id):
     home = 0
     away = 0
     for event in timeline["Event"]:
+        post = None
+
         if event["Type"] == EVENT_TYPES_MAP["Shot"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])
-            print(
-                f"{event['MatchMinute']}: SHOT - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
-            )
+            post = f"SHOT - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+
         elif event["Type"] == EVENT_TYPES_MAP["Goal"]:
-            player = getPlayer(event["IdPlayer"])
-            team = getTeam(event["IdTeam"])
-            print(
-                f"{event['MatchMinute']}: {BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
-            )
             if event["IdTeam"] == home_id:
                 home += 1
             elif event["IdTeam"] == away_id:
                 away += 1
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event["IdTeam"])
+            post = f"{BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+
         elif event["Type"] == EVENT_TYPES_MAP["GoalFromFreeKick"]:
-            player = getPlayer(event["IdPlayer"])
-            team = getTeam(event["IdTeam"])
-            print(
-                f"{event['MatchMinute']}: {BALL} (Free kick) - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
-            )
             if event["IdTeam"] == home_id:
                 home += 1
             elif event["IdTeam"] == away_id:
                 away += 1
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event["IdTeam"])
+            post = f"{BALL} (Free kick) - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+
         elif event["Type"] == EVENT_TYPES_MAP["GoalFromPenalty"]:
-            player = getPlayer(event["IdPlayer"])
-            team = getTeam(event["IdTeam"])
-            print(
-                f"{event['MatchMinute']}: \N{GOAL NET}{BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
-            )
             if event["IdTeam"] == home_id:
                 home += 1
             elif event["IdTeam"] == away_id:
                 away += 1
-        elif event["Type"] == EVENT_TYPES_MAP["OwnGoal"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])
-            print(
-                f"{event['MatchMinute']}: \N{Face Palm}{BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
-            )
+            post = f"\N{GOAL NET}{BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+
+        elif event["Type"] == EVENT_TYPES_MAP["OwnGoal"]:
             # NB: Swapped home and away
             if event["IdTeam"] == home_id:
                 away += 1
             elif event["IdTeam"] == away_id:
                 home += 1
+            player = getPlayer(event["IdPlayer"])
+            team = getTeam(event["IdTeam"])
+            post = f"\N{Face Palm}{BALL} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+
         elif event["Type"] == EVENT_TYPES_MAP["YellowCard"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])
-            print(
-                f"{event['MatchMinute']}: \N{LEDGER} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
-            )
+            post = f"\N{LEDGER} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+
         elif event["Type"] == EVENT_TYPES_MAP["RedCard"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])
-            print(
-                f"{event['MatchMinute']}: \N{LARGE RED CIRCLE} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
-            )
+            post = f"\N{LARGE RED CIRCLE} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+
         elif event["Type"] == EVENT_TYPES_MAP["Red2Yellow"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])
-            print(
-                f"{event['MatchMinute']}: \N{LEDGER}\N{LEDGER}\N{LARGE RED CIRCLE} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
-            )
+            post =  f"\N{LEDGER}\N{LEDGER}\N{LARGE RED CIRCLE} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+
         elif event["Type"] == EVENT_TYPES_MAP["Substitution"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])
@@ -375,21 +369,20 @@ def pprintTimeline(timeline, home_id, away_id):
                 if event["IdSubPlayer"]
                 else {"Name": [{"Description": "???"}]}
             )
-            print(
-                f"{event['MatchMinute']}: Sub - {SUB_IN} {player['Name'][0]['Description']} \N{Left Right Arrow} {SUB_OUT} {subPlayer['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
-            )
+            post = f"\N{Left Right Arrow} - {SUB_IN} {player['Name'][0]['Description']} - {SUB_OUT} {subPlayer['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+
         elif event["Type"] == EVENT_TYPES_MAP["SaveFromPenalty"]:
             player = getPlayer(event["IdPlayer"])
             team = getTeam(event["IdTeam"])
-            print(
-                f"{event['MatchMinute']}: \N{GOAL NET}\N{No Entry Sign} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
-            )
+            post = f"\N{GOAL NET}\N{No Entry Sign} - {player['Name'][0]['Description']} [{team['Name'][0]['Description']}]"
+
         elif event["Type"] != EVENT_TYPES_MAP["Unknown"]:
             if event["Type"] not in [EVENT_TYPES_MAP['EndMatch'], EVENT_TYPES_MAP['StartTime'], EVENT_TYPES_MAP['EndTime']]:
                 raise Exception(EVENT_TYPES[event["Type"]])
-            print(
-                f"{event['MatchMinute']} - \N{STOPWATCH} {EVENT_TYPES[event['Type']]}"
-            )
+            post = f"\N{STOPWATCH} {EVENT_TYPES[event['Type']]}"
+
+        if post:
+            print(f"{event['MatchMinute']}\t[{home}-{away}]:\t{post}")
 
     return home, away
 
